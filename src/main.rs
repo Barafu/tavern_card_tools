@@ -129,7 +129,7 @@ fn main() {
 
 fn wrong_usage() {
     eprintln!("Wrong arguments!");
-    dbg!(env::args().collect::<Vec<String>>());
+    //dbg!(env::args().collect::<Vec<String>>());
     print_usage();
     std::process::exit(2);
 }
