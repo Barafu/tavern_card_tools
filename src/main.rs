@@ -1,8 +1,5 @@
 #![allow(dead_code)]
 
-use env_logger::Builder;
-use std::{env, fs::File};
-
 mod baya_download;
 mod tavern_card_v2;
 mod tools;
@@ -12,6 +9,8 @@ fn main() {
     // Prepare debug logging.
     #[cfg(debug_assertions)]
     {
+        use env_logger::Builder;
+        use std::fs::File;
         let target = Box::new(File::create("testing/last_run.log")
             .expect("Can't create file"));
 
@@ -25,7 +24,7 @@ fn main() {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     println!("tavern card tools v{}", VERSION);
 
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = std::env::args().collect();
     let args_r: Vec<&str> = args.iter().map(|x| x.as_str()).collect();
 
     // Run action according to the first CLI arg, or print usage.
