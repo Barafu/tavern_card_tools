@@ -2,7 +2,8 @@
 
 ## Currently supported functions:
 
-* `tavern_card_tools.exe baya_get URL` - extract a character card from "Backyard AI" URL. Supports URLs that require registration. 
+* `tavern_card_tools.exe baya_get URL` - extract a character card from "Backyard AI" URL. Supports URLs that require registration. Will automatically convert all instances of word `User`
+into `{{user}}`
 
 Obviously, more functions planned in the future. 
 
