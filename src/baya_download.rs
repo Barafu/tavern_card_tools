@@ -224,19 +224,21 @@ impl From<&BayaCharacter> for TavernCardV2 {
         let card_data = &mut new_character.data;
 
         let transfer_string = |s: &Option<String>| {
-            s.as_ref()
-                .filter(|&x| !x.is_empty())
-                .map(|x| convert_user_tag(&x))
+            s.clone().filter(|x| !x.is_empty())
+        };
+
+        let transfer_string_and_conv = |s| {
+            transfer_string(s).map(|x| convert_user_tag(&x))
         };
 
         card_data.name = transfer_string(&character.aiDisplayName);
-        card_data.description = transfer_string(&character.aiPersona);
-        card_data.scenario = transfer_string(&character.scenario);
-        card_data.first_mes = transfer_string(&character.firstMessage);
-        card_data.mes_example = transfer_string(&character.customDialogue);
+        card_data.description = transfer_string_and_conv(&character.aiPersona);
+        card_data.scenario = transfer_string_and_conv(&character.scenario);
+        card_data.first_mes = transfer_string_and_conv(&character.firstMessage);
+        card_data.mes_example = transfer_string_and_conv(&character.customDialogue);
         card_data.creator_notes = transfer_string(&character.authorNotes);
-        card_data.system_prompt = transfer_string(&character.basePrompt);
-        card_data.personality = transfer_string(&character.description);
+        card_data.system_prompt = transfer_string_and_conv(&character.basePrompt);
+        card_data.personality = transfer_string_and_conv(&character.description);
 
         for tag in &character.Tags {
             card_data.tags.push(tag.name.clone());
