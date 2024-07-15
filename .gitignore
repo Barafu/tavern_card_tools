@@ -2,3 +2,4 @@
 /.vscode
 *.log
 src/example.rs
+testing/*

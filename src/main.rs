@@ -1,24 +1,21 @@
 #![allow(dead_code)]
 
 use env_logger::Builder;
-use std::{
-    env,
-    fs::File,
-};
+use std::{env, fs::File};
 
-mod tavern_card_v2;
 mod baya_download;
+mod tavern_card_v2;
 mod tools;
 //mod example;
-
 
 fn main() {
     // Prepare debug logging.
     #[cfg(debug_assertions)]
     {
-        let target = Box::new(File::create("last_run.log").expect("Can't create file"));
+        let target = Box::new(File::create("testing/last_run.log")
+            .expect("Can't create file"));
 
-        Builder::new()        
+        Builder::new()
             .target(env_logger::Target::Pipe(target))
             .filter(None, log::LevelFilter::Info)
             .init();
@@ -57,13 +54,3 @@ fn wrong_usage() {
 fn print_usage() {
     println!("Usage: baya_get <url>");
 }
-
-
-
-
-
-
-
-
-
-

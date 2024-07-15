@@ -131,7 +131,7 @@ pub fn download_card_from_baya_url(url: &str) -> Result<()> {
     let tavern_card = TavernCardV2::from(&baya_character);
     let tavern_image =
         write_tavern_card(&tavern_card, &card_image).context("Could not write tavern card")?;
-    write_image_to_file(&tavern_image, &card_name)? ;
+    write_image_to_file(&tavern_image, &card_name)?;
     println!("Done!");
     print!("Fap away!");
     flush();
@@ -245,4 +245,51 @@ impl From<&Lorebook> for CharacterBook {
     }
 }
 
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use test_context::{test_context, TestContext};
+    use anyhow::Result;
 
+    const CACHE_PATH: &str = "testing/test_cache.txt"; // Cache for downloaded pages will be stored here.
+
+    #[derive(serde::Serialize, serde::Deserialize)]
+    struct TestCache {
+        page_cache: HashMap<String, String>,
+    }
+
+    impl TestContext for TestCache {
+        fn setup() -> Self {
+            let file_content =
+                std::fs::read_to_string(CACHE_PATH).unwrap_or_else(|_| String::new());
+            serde_json::from_str(&file_content).unwrap_or_else(|_| TestCache {
+                page_cache: HashMap::new(),
+            })
+        }
+
+        fn teardown(self) {
+            let serialized = serde_json::to_string(&self).expect("Failed to serialize cache");
+            std::fs::write(CACHE_PATH, serialized).expect("Failed to write cache to file");
+        }
+    }
+
+    fn download_testing_webpage<'a>(url: &str, cache: &'a mut TestCache) -> Result<&'a str> {
+        if cache.page_cache.contains_key(url) {
+            return Ok(cache.page_cache.get(url).unwrap());
+        }
+        let page_content = tools::download_page(url)?;
+        cache.page_cache.insert(url.to_string(), page_content);
+        return Ok(cache.page_cache.get(url).unwrap());
+    }
+
+    #[test_context(TestCache)]
+    #[test]
+    fn test_downloading_page(cache: &mut TestCache) -> Result<()> {
+        const TEST_URL: &str = "https://backyard.ai/hub/character/clmg7rj2e03j0mc0v69b1tai1";
+        let page = download_testing_webpage(TEST_URL, cache)?;
+        let baya_char = parse_page(page)?;
+        let baya_char_name = baya_char.aiDisplayName.unwrap();
+        assert_eq!(baya_char_name, "Character crafter Puppy");
+        Ok(())
+    }
+}
