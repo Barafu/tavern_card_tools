@@ -1,7 +1,8 @@
+use anyhow::Result;
+use base64::prelude::*;
+use bytes::Bytes;
 
-use crate::{Lorebook, LoreBookItem, BayaCharacter};
-
-use std::convert::From;
+use crate::tools;
 
 #[derive(serde::Serialize, Debug, Default)]
 pub struct CharacterBook {
@@ -68,66 +69,10 @@ impl TavernCardV2 {
     }
 }
 
-impl From<&BayaCharacter> for TavernCardV2 {
-    fn from(character: &BayaCharacter) -> Self {
-        let mut new_character = TavernCardV2::new();
-        let card_data = &mut new_character.data;
-
-        let transfer_string = |s: &Option<String> | {
-            let sn = s.clone();
-            sn.filter(|x| !x.is_empty())            
-        };
-
-        
-        card_data.name = transfer_string(&character.aiDisplayName);
-        card_data.description = transfer_string(&character.aiPersona);
-        card_data.scenario = transfer_string(&character.scenario);
-        card_data.first_mes = transfer_string(&character.firstMessage);
-        card_data.mes_example = transfer_string(&character.customDialogue);
-        card_data.creator_notes = transfer_string(&character.authorNotes);
-        card_data.system_prompt = transfer_string(&character.basePrompt);
-        card_data.personality = transfer_string(&character.description);
-
-        for tag in &character.Tags {
-            card_data.tags.push(tag.name.clone());
-        };
-
-        let author_name = match &character.Author {
-            Some(author) => author.username.clone(),
-            None => "".to_string(),
-        };
-        card_data.creator = transfer_string(&Some(author_name));
-
-        //Now copy the lorebook
-        if let Some(lorebook) = &character.Lorebook {
-            if !lorebook.LorebookItems.is_empty() {
-                card_data.character_book = Some(lorebook.into());
-            }           
-        }
-
-        
-        new_character
-    }
-}
-
-impl From<&LoreBookItem> for CharacterBookEntry {
-    fn from(lorebook_entry: &LoreBookItem) -> Self {
-        let mut new_entry = CharacterBookEntry::default();
-        new_entry.keys = lorebook_entry.key
-            .split(",")
-            .map(|x| x.trim().to_string())
-            .collect();
-        new_entry.content = lorebook_entry.value.clone();
-        new_entry
-    }
-}
-
-impl From<&Lorebook> for CharacterBook {
-    fn from(lorebook: &Lorebook) -> Self {
-        let mut new_book = CharacterBook::default();
-        for lorebook_entry in &lorebook.LorebookItems {
-            new_book.entries.push(lorebook_entry.into());
-        }
-        new_book
-    }
+/// Write Tavern tag into the image.
+pub fn write_tavern_card(char: &TavernCardV2, image_data: &Bytes) -> Result<Bytes> {
+    let json_string = serde_json::to_string(char)?;
+    let base64_json_string = BASE64_STANDARD.encode(json_string);
+    let edited_card = tools::write_text_to_png("Chara", &base64_json_string, image_data)?;
+    Ok(edited_card)
 }
