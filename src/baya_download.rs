@@ -107,8 +107,7 @@ pub fn download_card_from_baya_url(url: &str) -> Result<()> {
         .unwrap_or_else(|| "NO_NAME_SET".to_string());
     println!("Character name is: {}", display_char_name);
 
-    info!("\nCHARACTER INFO:");
-    info!("{:#?}", &baya_character);
+    info!("\nCHARACTER INFO:\n{:#?}", &baya_character);
 
     // Download the image, if it is linked on the page. Otherwise, use default image.
     let card_name = PathBuf::from(format!("{}.png", display_char_name));
@@ -129,6 +128,9 @@ pub fn download_card_from_baya_url(url: &str) -> Result<()> {
     print!("Writing tavern card: ");
     flush();
     let tavern_card = TavernCardV2::from(&baya_character);
+
+    info!("\nCONVERTED TAVERN CARD:\n{:#?}", &tavern_card);
+
     let tavern_image =
         write_tavern_card(&tavern_card, &card_image).context("Could not write tavern card")?;
     write_image_to_file(&tavern_image, &card_name)?;
@@ -152,8 +154,7 @@ fn parse_page(body: &str) -> Result<BayaCharacter> {
 
     let scr_text = scr.text();
 
-    info!("SCRIPT DATA:");
-    info!("{}", &scr_text);
+    info!("\nSCRIPT DATA:\n{:#?}", &scr_text);
 
     let mut json: serde_json::Value =
         serde_json::from_str(&scr.text()).context("JSON was not well-formatted")?;
@@ -164,8 +165,7 @@ fn parse_page(body: &str) -> Result<BayaCharacter> {
         .context("Could not find character block")?;
 
     let json_string = serde_json::to_string_pretty(&char_json)?;
-    info!("CHAR JSON:");
-    info!("{:#?}", &json_string);
+    info!("\nCHAR JSON:\n{:#?}", &json_string);
 
     let ds = &mut serde_json::Deserializer::from_str(&json_string);
     let result: Result<BayaCharacter, _> = serde_path_to_error::deserialize(ds);
@@ -182,14 +182,51 @@ fn parse_page(body: &str) -> Result<BayaCharacter> {
     }
 }
 
+/// Replace all instances of User
+///
+/// The convention on Backyard characters is to adress user as "User" while SillyTavern convention
+/// is to use {{user}} instead. This function replaces all instances of User, trying to
+/// ignore compound words like Userland.
+fn convert_user_tag(text: &str) -> String {
+    const CONVERT_FROM: &str = "User";
+    const CONVERT_INTO: &str = "{{user}}";
+    let mut result = String::new();
+    let mut last_match_end = 0;
+
+    for (start, part) in text.match_indices(|c: char| c.is_whitespace() || c.is_ascii_punctuation())
+    {
+        if start > last_match_end {
+            let word = &text[last_match_end..start];
+            if word == CONVERT_FROM {
+                result.push_str(CONVERT_INTO);
+            } else {
+                result.push_str(word);
+            }
+        }
+        result.push_str(part);
+        last_match_end = start + part.len();
+    }
+
+    if last_match_end < text.len() {
+        let last_word = &text[last_match_end..];
+        if last_word == "User" {
+            result.push_str("XXX");
+        } else {
+            result.push_str(last_word);
+        }
+    }
+    result
+}
+
 impl From<&BayaCharacter> for TavernCardV2 {
     fn from(character: &BayaCharacter) -> Self {
         let mut new_character = TavernCardV2::new();
         let card_data = &mut new_character.data;
 
         let transfer_string = |s: &Option<String>| {
-            let sn = s.clone();
-            sn.filter(|x| !x.is_empty())
+            s.as_ref()
+                .filter(|&x| !x.is_empty())
+                .map(|x| convert_user_tag(&x))
         };
 
         card_data.name = transfer_string(&character.aiDisplayName);
@@ -247,9 +284,9 @@ impl From<&Lorebook> for CharacterBook {
 
 mod tests {
     use super::*;
+    use anyhow::Result;
     use std::collections::HashMap;
     use test_context::{test_context, TestContext};
-    use anyhow::Result;
 
     const CACHE_PATH: &str = "testing/test_cache.txt"; // Cache for downloaded pages will be stored here.
 
