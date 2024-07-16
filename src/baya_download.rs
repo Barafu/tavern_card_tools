@@ -210,8 +210,8 @@ fn convert_user_tag(text: &str) -> String {
 
     if last_match_end < text.len() {
         let last_word = &text[last_match_end..];
-        if last_word == "User" {
-            result.push_str("XXX");
+        if last_word == CONVERT_FROM {
+            result.push_str(CONVERT_INTO);
         } else {
             result.push_str(last_word);
         }
