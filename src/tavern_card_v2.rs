@@ -1,10 +1,12 @@
-use anyhow::Result;
+use anyhow::{bail, Result};
 use base64::prelude::*;
 use bytes::Bytes;
 
 use crate::tools;
 
-#[derive(serde::Serialize, Debug, Default)]
+const TEXT_KEY_PNG: &str = "Chara";
+
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
 pub struct CharacterBook {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -15,7 +17,7 @@ pub struct CharacterBook {
     pub entries: Vec<CharacterBookEntry>,
 }
 
-#[derive(serde::Serialize, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
 pub struct CharacterBookEntry {
     pub keys: Vec<String>,
     pub content: String,
@@ -33,14 +35,16 @@ pub struct CharacterBookEntry {
     pub position: Option<String>,
 }
 
-#[derive(serde::Serialize, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
 pub struct TavernCardV2 {
     pub spec: String,
     pub spec_version: String,
     pub data: CharacterData,
+    #[serde(skip)]
+    pub image_data: Option<Bytes>, // For keeping PNG image along
 }
 
-#[derive(serde::Serialize, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
 pub struct CharacterData {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -65,14 +69,28 @@ impl TavernCardV2 {
             spec: "chara_card_v2".to_string(),
             spec_version: "2.0".to_string(),
             data: CharacterData::default(),
+            image_data: None,
         }
     }
-}
 
-/// Write Tavern tag into the image.
-pub fn write_tavern_card(char: &TavernCardV2, image_data: &Bytes) -> Result<Bytes> {
-    let json_string = serde_json::to_string(char)?;
-    let base64_json_string = BASE64_STANDARD.encode(json_string);
-    let edited_card = tools::write_text_to_png("Chara", &base64_json_string, image_data)?;
-    Ok(edited_card)
+    /// Writes card into image
+    ///
+    /// Makes a copy of PNG image, with card tag added to it.
+    pub fn write_tavern_card(&self, image_data: &Bytes) -> Result<Bytes> {
+        let json_string = serde_json::to_string(self)?;
+        let base64_json_string = BASE64_STANDARD.encode(json_string);
+        let edited_card = tools::write_text_to_png(TEXT_KEY_PNG, &base64_json_string, image_data)?;
+        Ok(edited_card)
+    }
+
+    pub fn read_from_png(image_data: &Bytes) -> Result<Self> {
+        let raw_text = tools::read_text_chunk(image_data, TEXT_KEY_PNG)?;
+        if raw_text.is_none() {
+            bail!("No {} entry in PNG tEXt chunks", TEXT_KEY_PNG);
+        };
+        let text = BASE64_STANDARD.decode(raw_text.unwrap())?;
+        let mut card: TavernCardV2 = serde_json::from_slice(&text)?;
+        card.image_data = Some(image_data.clone());
+        Ok(card)
+    }
 }

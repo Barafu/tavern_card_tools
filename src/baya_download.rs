@@ -131,8 +131,9 @@ pub fn download_card_from_baya_url(url: &str) -> Result<()> {
 
     info!("\nCONVERTED TAVERN CARD:\n{:#?}", &tavern_card);
 
-    let tavern_image =
-        write_tavern_card(&tavern_card, &card_image).context("Could not write tavern card")?;
+    let tavern_image = tavern_card
+        .write_tavern_card(&card_image)
+        .context("Could not write tavern card")?;
     write_image_to_file(&tavern_image, &card_name)?;
     println!("Done!");
     print!("Fap away!");

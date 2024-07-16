@@ -1,6 +1,7 @@
 //! Functions that will likely be useful for multiple tasks
 use anyhow::{bail, Context, Result};
 use bytes::Bytes;
+use png::text_metadata::TEXtChunk;
 use std::path::Path;
 
 /// Download web page by URL, return contents
@@ -68,49 +69,60 @@ pub fn get_default_image() -> Bytes {
     Bytes::from_static(include_bytes!("no_face.png"))
 }
 
-/// Add a key-value tEXt chunk to PNG.
+/// Adds a key-value tEXt chunk to PNG.
 ///
-/// Return error if the data is not a proper PNG.
+/// Returns error if the data is not a proper PNG. Makes sure not to duplicate 
+/// the text chunk with the same key.
 pub fn write_text_to_png(key: &str, value: &str, image_data: &Bytes) -> Result<Bytes> {
     // # Decode
     // The decoder is a build for reader and can be used to set various decoding options
     // via `Transformations`. The default output transformation is `Transformations::IDENTITY`.
     let decoder = png::Decoder::new(image_data.as_ref());
     let mut reader = decoder.read_info()?;
-    // Allocate the output buffer.
     let png_info = reader.info().clone();
-    let mut buf = vec![0; reader.output_buffer_size()];
-    // Save picture to memory.
-    let mut memory: Vec<Vec<u8>> = Vec::new();
-    while let Ok(info) = reader.next_frame(&mut buf) {
-        let mut frame = buf.clone();
-        frame.resize(info.buffer_size(), 0);
-        //let bytes = Bytes::&buf[..info.buffer_size()].;
-        memory.push(frame);
-    }
-    drop(reader);
-
+    
     // # Encode
     // let path_out = image_path.with_file_name("output2");
     let mut output_vec: Vec<u8> = Vec::new();
-
+    
     // Get defaults for interlaced parameter.
     let mut info_out = png_info.clone();
     let info_default = png::Info::default();
-
-    // Edit previous info
     info_out.interlaced = info_default.interlaced;
+
+    // Add text entry. Make sure only one text entry with that key exists.     
+    info_out.uncompressed_latin1_text.retain(|x|x.keyword != key);
+    let new_text_entry = TEXtChunk { keyword: key.to_string(), text: value.to_string() };
+    info_out.uncompressed_latin1_text.push(new_text_entry);
+    
     let mut encoder = png::Encoder::with_info(&mut output_vec, info_out)?;
     encoder.set_depth(png_info.bit_depth);
-
-    // Edit test attribute
-    encoder.add_text_chunk(key.to_string(), value.to_string())?;
-
-    // Save picture with changed info
+    
+    // Save picture with changed info. Copy frames from reader.
     let mut writer = encoder.write_header()?;
-    for frame in memory {
-        writer.write_image_data(&frame)?;
+    let mut buf = vec![0; reader.output_buffer_size()];
+    while let Ok(info) = reader.next_frame(&mut buf) {
+        let frame_bytes = &buf[..info.buffer_size()];
+        writer.write_image_data(&frame_bytes)?;
     }
+    drop(buf);
     drop(writer);
     Ok(Bytes::from(output_vec))
+}
+
+/// Searches PNG image for a tEXt chunk with a given key
+pub fn read_text_chunk(image_data: &Bytes, chunk_key: &str) -> Result<Option<String>> {
+    // Create a decoder
+    let decoder = png::Decoder::new(image_data.as_ref());
+    let reader = decoder.read_info()?;
+    let png_info = reader.info();
+
+    for text_chunk in &png_info.uncompressed_latin1_text {
+        println!("{:#?}", text_chunk);
+        if text_chunk.keyword == chunk_key {
+            return Ok(Some(text_chunk.text.clone()));
+        }
+    }
+    // If we didn't find the chunk, return None
+    Ok(None)
 }
