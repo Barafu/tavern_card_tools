@@ -6,7 +6,7 @@ use crate::tools;
 
 const TEXT_KEY_PNG: &str = "Chara";
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, PartialEq)]
 pub struct CharacterBook {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -17,7 +17,7 @@ pub struct CharacterBook {
     pub entries: Vec<CharacterBookEntry>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, PartialEq)]
 pub struct CharacterBookEntry {
     pub keys: Vec<String>,
     pub content: String,
@@ -35,7 +35,7 @@ pub struct CharacterBookEntry {
     pub position: Option<String>,
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, PartialEq)]
 pub struct TavernCardV2 {
     pub spec: String,
     pub spec_version: String,
@@ -44,7 +44,7 @@ pub struct TavernCardV2 {
     pub image_data: Option<Bytes>, // For keeping PNG image along
 }
 
-#[derive(serde::Serialize, serde::Deserialize, Debug, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Debug, Default, PartialEq)]
 pub struct CharacterData {
     pub name: Option<String>,
     pub description: Option<String>,
@@ -93,4 +93,52 @@ impl TavernCardV2 {
         card.image_data = Some(image_data.clone());
         Ok(card)
     }
+}
+
+#[cfg(test)]
+mod tests {    
+
+    use super::*;
+    use tools;
+    use anyhow::Result;
+
+    fn create_test_card() -> TavernCardV2 {
+        let mut card = TavernCardV2::new();
+        card.data.name = Some(String::from("Test name"));
+        card.data.description = Some(String::from("Test description"));
+        card.data.personality = Some(String::from("Test personality"));
+        card.data.scenario = Some(String::from("Test scenario"));
+        card.data.first_mes = Some(String::from("Test first message"));
+        card.data.mes_example = Some(String::from("Test dialog example"));
+        card.data.character_book = Some(CharacterBook::default());
+        let mut entry1 = CharacterBookEntry::default();
+        entry1.content = String::from("Test book entry 1");
+
+        let mut entry2 = CharacterBookEntry::default();
+        entry2.content = String::from("Test book entry 2");
+
+        card.data.character_book.as_mut().unwrap().entries.push(entry1);
+        card.data.character_book.as_mut().unwrap().entries.push(entry2);
+        card
+    }
+
+    #[test]
+    fn test_equal_sanity() {
+        let card1 = create_test_card();
+        let card2 = create_test_card();
+        assert_eq!(card1, card2);
+    }
+
+    #[test]
+    fn test_write_and_read() -> Result<()> {
+        let mut card = create_test_card();
+        let mut image = tools::get_default_image();
+        image = card.write_tavern_card(&image)?;
+        let mut card2 = TavernCardV2::read_from_png(&image)?;
+        card.image_data = None;
+        card2.image_data = None;
+        assert_eq!(card, card2);
+        // tools::write_image_to_file(&image, &std::path::Path::new("testing/test_card.png"))?;
+        Ok(())
+    } 
 }

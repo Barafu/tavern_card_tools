@@ -118,7 +118,6 @@ pub fn read_text_chunk(image_data: &Bytes, chunk_key: &str) -> Result<Option<Str
     let png_info = reader.info();
 
     for text_chunk in &png_info.uncompressed_latin1_text {
-        println!("{:#?}", text_chunk);
         if text_chunk.keyword == chunk_key {
             return Ok(Some(text_chunk.text.clone()));
         }
