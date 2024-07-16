@@ -23,7 +23,7 @@ pub struct CharacterBookEntry {
     pub content: String,
     pub extensions: std::collections::HashMap<String, serde_json::Value>,
     pub enabled: bool,
-    pub insertion_order: u32,
+    pub insertion_order: Option<u32>,
     pub case_sensitive: Option<bool>,
     pub name: Option<String>,
     pub priority: Option<u32>,

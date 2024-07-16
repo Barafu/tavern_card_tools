@@ -3,6 +3,7 @@
 mod baya_download;
 mod tavern_card_v2;
 mod tools;
+mod deasterisk;
 //mod example;
 
 fn main() {
