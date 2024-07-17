@@ -3,8 +3,12 @@
 use std::path::Path;
 
 use anyhow::{bail, Result};
+use log::info;
 
-use crate::{tavern_card_v2::TavernCardV2, tools::{self, read_image_from_file}};
+use crate::{
+    tavern_card_v2::TavernCardV2,
+    tools::{self, read_image_from_file},
+};
 
 /// Remove asterisks from text
 ///
@@ -22,7 +26,7 @@ fn remove_paired_asterisks(input_str: &str) -> String {
     for (i, ch) in input.iter().enumerate() {
         if *ch == AST {
             // if a part of a group of asterisks - skip.
-            if let Some(c) = input.get(i+1) {
+            if let Some(c) = input.get(i + 1) {
                 if *c == AST {
                     continue;
                 }
@@ -76,25 +80,44 @@ pub fn deasterisk_tavern_card(tavern_card: &mut TavernCardV2) {
             e.content = remove_paired_asterisks(&e.content);
         }
     }
+    if let Some(ag) = &mut d.alternate_greetings {
+        for g in ag.iter_mut() {
+            *g = remove_paired_asterisks(g);
+        }
+    }
 }
 
 // Opens file, applies deasterisk to it, saves in new location.
-pub fn deasterisk_tavern_file(png_path: &Path) -> Result<()> {
+pub fn deasterisk_tavern_file(png_path: &Path, overwrite: bool) -> Result<()> {
     println!("Deasterisk file: {}", &png_path.display());
     let image_data = read_image_from_file(png_path)?;
     let mut card = TavernCardV2::from_png_image(&image_data)?;
-    println!("Character name is {}", card.data.name.to_owned().unwrap_or_else(||"".to_string()));
+    println!(
+        "Character name is {}",
+        card.data.name.to_owned().unwrap_or_else(|| "".to_string())
+    );
     deasterisk_tavern_card(&mut card);
-    // Build new file name. 
+
+    info!("\nCHARACTER INFO:\n{:#?}", &card.data);
+
+    // Build new file name.
     let file_name = png_path
-    .file_name()
-    .map_or("image.png".to_string(), |x| x.to_string_lossy().to_string()); 
+        .file_name()
+        .map_or("image.png".to_string(), |x| x.to_string_lossy().to_string());
     let new_file_name = format!("de8.{}", file_name);
     println!("Output file name: {}", new_file_name);
     let new_path = png_path.with_file_name(new_file_name);
     if new_path.try_exists().unwrap_or(true) {
-        bail!("File {} already exists or is not available", new_path.display());
+        if overwrite {
+            std::fs::remove_file(&new_path)?;
+        } else {
+            bail!(
+                "File {} already exists or is not available",
+                new_path.display()
+            );
+        }
     };
+
     // Save image to new name
     let new_image = card.into_png_image()?;
     tools::write_image_to_file(&new_image, &new_path)?;
@@ -144,7 +167,6 @@ mod tests {
             remove_paired_asterisks("**Example text of no importance**"),
             "**Example text of no importance**"
         );
-        
     }
 
     use crate::tavern_card_v2::*;
@@ -152,7 +174,9 @@ mod tests {
     #[test]
     fn test_deasterisk_tavern_card() {
         let mut card = TavernCardV2::new();
-        card.data.description = Some(String::from("Hello *world*, this is a **test** of *asterisks*."));
+        card.data.description = Some(String::from(
+            "Hello *world*, this is a **test** of *asterisks*.",
+        ));
         card.data.personality = Some(String::from("*This* is **bold** and *this* is *italic*."));
         card.data.scenario = Some(String::from("No asterisks here."));
         card.data.first_mes = Some(String::from("Only *paired* asterisks."));
@@ -165,23 +189,32 @@ mod tests {
         let mut entry2 = CharacterBookEntry::default();
         entry2.content = String::from("**Example text of no importance**");
 
-        card.data.character_book.as_mut().unwrap().entries.push(entry1);
-        card.data.character_book.as_mut().unwrap().entries.push(entry2);
-        
+        card.data
+            .character_book
+            .as_mut()
+            .unwrap()
+            .entries
+            .push(entry1);
+        card.data
+            .character_book
+            .as_mut()
+            .unwrap()
+            .entries
+            .push(entry2);
+
         deasterisk_tavern_card(&mut card);
 
         assert_eq!(
             card.data.description,
-            Some(String::from("Hello world, this is a **test** of asterisks."))
+            Some(String::from(
+                "Hello world, this is a **test** of asterisks."
+            ))
         );
         assert_eq!(
             card.data.personality,
             Some(String::from("This is **bold** and this is italic."))
         );
-        assert_eq!(
-            card.data.scenario,
-            Some(String::from("No asterisks here."))
-        );
+        assert_eq!(card.data.scenario, Some(String::from("No asterisks here.")));
         assert_eq!(
             card.data.first_mes,
             Some(String::from("Only paired asterisks."))
@@ -199,5 +232,4 @@ mod tests {
             String::from("**Example text of no importance**")
         );
     }
-
 }

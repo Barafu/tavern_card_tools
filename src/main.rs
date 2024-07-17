@@ -1,13 +1,13 @@
 #![allow(dead_code)]
 
-use std::path::Path;
 use anyhow::Result;
 use clap::Parser;
+use std::path::Path;
 
 mod baya_download;
+mod deasterisk;
 mod tavern_card_v2;
 mod tools;
-mod deasterisk;
 //mod example;
 
 #[derive(Parser, Debug)]
@@ -34,6 +34,8 @@ enum Commands {
         /// Path to image.png
         #[arg(short, long)]
         path: String,
+        #[arg(short, long)]
+        force: bool,
     },
 }
 
@@ -43,8 +45,7 @@ fn main() {
     {
         use env_logger::Builder;
         use std::fs::File;
-        let target = Box::new(File::create("testing/last_run.log")
-            .expect("Can't create file"));
+        let target = Box::new(File::create("testing/last_run.log").expect("Can't create file"));
 
         Builder::new()
             .target(env_logger::Target::Pipe(target))
@@ -60,7 +61,6 @@ fn main() {
         println!("Error: {}", err);
         std::process::exit(1);
     }
-
 }
 
 fn parse_args() -> Result<()> {
@@ -68,8 +68,9 @@ fn parse_args() -> Result<()> {
 
     match args.command {
         Commands::BayaGet { url } => baya_download::download_card_from_baya_url(&url)?,
-        Commands::De8 { path } => deasterisk::deasterisk_tavern_file(Path::new(&path))?,
+        Commands::De8 { path, force } => {
+            deasterisk::deasterisk_tavern_file(Path::new(&path), force)?
+        }
     };
     Ok(())
-
 }
