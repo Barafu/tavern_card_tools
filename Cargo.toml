@@ -1,7 +1,8 @@
 [package]
 name = "tavern_card_tools"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
+authors = ["Barafu Albino <barafu_devel@albino.email>"]
 
 [profile.release]
 strip = true #Remove extra symbols
