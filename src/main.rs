@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+use std::path::Path;
+
 mod baya_download;
 mod tavern_card_v2;
 mod tools;
@@ -33,6 +35,10 @@ fn main() {
     match args_r.as_slice() {
         [_, "baya_get", url] => {
             error_flag = baya_download::download_card_from_baya_url(*url);
+        },
+        [_, "de8", path] => {
+            let p = Path::new(*path);
+            error_flag = deasterisk::deasterisk_tavern_file(p);
         }
         _ => wrong_usage(),
     }
