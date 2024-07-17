@@ -4,6 +4,7 @@
 
 * `tavern_card_tools.exe baya_get URL` - extract a character card from "Backyard AI" URL. Supports URLs that require registration. Will automatically convert all instances of word `User`
 into `{{user}}`
+* `tavern_card_tools.exe de8 filename.png` - remove paired asterisks from all primary text fields of the card. Creates a new file for the output, named de8.filename.png, and leaves original as it is. 
 
 Obviously, more functions planned in the future. 
 
