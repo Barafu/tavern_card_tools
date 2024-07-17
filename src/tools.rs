@@ -45,7 +45,6 @@ pub fn read_image_from_file(image_path: &Path) -> Result<Bytes> {
     Ok(Bytes::from(image_data))
 }
 
-
 /// Convert an image to PNG format.
 ///
 /// Take an image in any supported format and convert it to PNG.
@@ -77,7 +76,7 @@ pub fn get_default_image() -> Bytes {
 
 /// Adds a key-value tEXt chunk to PNG.
 ///
-/// Returns error if the data is not a proper PNG. Makes sure not to duplicate 
+/// Returns error if the data is not a proper PNG. Makes sure not to duplicate
 /// the text chunk with the same key.
 pub fn write_text_to_png(key: &str, value: &str, image_data: &Bytes) -> Result<Bytes> {
     // # Decode
@@ -86,24 +85,26 @@ pub fn write_text_to_png(key: &str, value: &str, image_data: &Bytes) -> Result<B
     let decoder = png::Decoder::new(image_data.as_ref());
     let mut reader = decoder.read_info()?;
     let png_info = reader.info().clone();
-    
+
     // # Encode
     // let path_out = image_path.with_file_name("output2");
     let mut output_vec: Vec<u8> = Vec::new();
-    
+
     // Get defaults for interlaced parameter.
     let mut info_out = png_info.clone();
     let info_default = png::Info::default();
     info_out.interlaced = info_default.interlaced;
 
-    // Add text entry. Make sure only one text entry with that key exists.     
-    info_out.uncompressed_latin1_text.retain(|x|x.keyword != key);
+    // Add text entry. Make sure only one text entry with that key exists.
+    info_out
+        .uncompressed_latin1_text
+        .retain(|x| x.keyword.to_lowercase() != key.to_lowercase());
     let new_text_entry = TEXtChunk { keyword: key.to_string(), text: value.to_string() };
     info_out.uncompressed_latin1_text.push(new_text_entry);
-    
+
     let mut encoder = png::Encoder::with_info(&mut output_vec, info_out)?;
     encoder.set_depth(png_info.bit_depth);
-    
+
     // Save picture with changed info. Copy frames from reader.
     let mut writer = encoder.write_header()?;
     let mut buf = vec![0; reader.output_buffer_size()];
@@ -121,7 +122,7 @@ pub fn read_text_chunk(image_data: &Bytes, chunk_key: &str) -> Result<Option<Str
     // Create a decoder
     let decoder = png::Decoder::new(image_data.as_ref());
     let mut reader = decoder.read_info()?;
-    reader.finish()?;    
+    reader.finish()?;
     let png_info = reader.info();
 
     for text_chunk in &png_info.uncompressed_latin1_text {
