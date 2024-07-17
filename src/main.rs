@@ -1,12 +1,41 @@
 #![allow(dead_code)]
 
 use std::path::Path;
+use anyhow::Result;
+use clap::Parser;
 
 mod baya_download;
 mod tavern_card_v2;
 mod tools;
 mod deasterisk;
 //mod example;
+
+#[derive(Parser, Debug)]
+#[command(author, version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Commands,
+}
+
+#[derive(Parser, Debug)]
+enum Commands {
+    /// Download tavern card from BackyardAI
+    #[command(name = "baya_get", author, version, about, long_about = None)]
+    #[command(arg_required_else_help = true)]
+    BayaGet {
+        /// URL at Backyard AI website to download from
+        #[arg(short, long)]
+        url: String,
+    },
+    /// Remove paired asterisks from text in tavern card. Makes a copy of the image and renames it to de8.old_name.png
+    #[command(author, version, about, long_about = None)]
+    #[command(arg_required_else_help = true)]
+    De8 {
+        /// Path to image.png
+        #[arg(short, long)]
+        path: String,
+    },
+}
 
 fn main() {
     // Prepare debug logging.
@@ -27,40 +56,20 @@ fn main() {
     const VERSION: &str = env!("CARGO_PKG_VERSION");
     println!("tavern card tools v{}", VERSION);
 
-    let args: Vec<String> = std::env::args().collect();
-    let args_r: Vec<&str> = args.iter().map(|x| x.as_str()).collect();
-
-    // Run action according to the first CLI arg, or print usage.
-    let mut error_flag = Ok(());
-    match args_r.as_slice() {
-        [_, "baya_get", url] => {
-            error_flag = baya_download::download_card_from_baya_url(*url);
-        },
-        [_, "de8", path] => {
-            let p = Path::new(*path);
-            error_flag = deasterisk::deasterisk_tavern_file(p);
-        }
-        _ => wrong_usage(),
-    }
-
-    if let Err(e) = error_flag {
-        eprintln!("ERROR: {:?} \nABORT", e);
+    if let Err(err) = parse_args() {
+        println!("Error: {}", err);
         std::process::exit(1);
     }
+
 }
 
-fn wrong_usage() {
-    eprintln!("Wrong arguments!");
-    //dbg!(env::args().collect::<Vec<String>>());
-    print_usage();
-    std::process::exit(2);
-}
+fn parse_args() -> Result<()> {
+    let args = Cli::parse();
 
-// In future this will print the user help.
-fn print_usage() {
-    println!(r###"Usage:
-    tavern_card_tools.exe [command] [ARGUMENTS]
-    Available commands:
-        baya_get <url> - download tavern card from BackyardAI
-        de8 <path> - deasterisk tavern card image"###);
+    match args.command {
+        Commands::BayaGet { url } => baya_download::download_card_from_baya_url(&url)?,
+        Commands::De8 { path } => deasterisk::deasterisk_tavern_file(Path::new(&path))?,
+    };
+    Ok(())
+
 }
