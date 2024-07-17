@@ -90,15 +90,15 @@ pub fn deasterisk_tavern_file(png_path: &Path) -> Result<()> {
     .file_name()
     .map_or("image.png".to_string(), |x| x.to_string_lossy().to_string()); 
     let new_file_name = format!("de8.{}", file_name);
+    println!("Output file name: {}", new_file_name);
     let new_path = png_path.with_file_name(new_file_name);
-    if let Ok(t) = new_path.try_exists() {
-        if t {
-            bail!("Path {} already exists or is not available", new_path.display());
-        }
+    if new_path.try_exists().unwrap_or(true) {
+        bail!("File {} already exists or is not available", new_path.display());
     };
     // Save image to new name
     let new_image = card.into_png_image()?;
     tools::write_image_to_file(&new_image, &new_path)?;
+    println!("Done");
     Ok(())
 }
 

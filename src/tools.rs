@@ -120,11 +120,12 @@ pub fn write_text_to_png(key: &str, value: &str, image_data: &Bytes) -> Result<B
 pub fn read_text_chunk(image_data: &Bytes, chunk_key: &str) -> Result<Option<String>> {
     // Create a decoder
     let decoder = png::Decoder::new(image_data.as_ref());
-    let reader = decoder.read_info()?;
+    let mut reader = decoder.read_info()?;
+    reader.finish()?;    
     let png_info = reader.info();
 
     for text_chunk in &png_info.uncompressed_latin1_text {
-        if text_chunk.keyword == chunk_key {
+        if text_chunk.keyword.to_lowercase() == chunk_key.to_lowercase() {
             return Ok(Some(text_chunk.text.clone()));
         }
     }

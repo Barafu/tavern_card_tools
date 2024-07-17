@@ -58,5 +58,9 @@ fn wrong_usage() {
 
 // In future this will print the user help.
 fn print_usage() {
-    println!("Usage: baya_get <url>");
+    println!(r###"Usage:
+    tavern_card_tools.exe [command] [ARGUMENTS]
+    Available commands:
+        baya_get <url> - download tavern card from BackyardAI
+        de8 <path> - deasterisk tavern card image"###);
 }

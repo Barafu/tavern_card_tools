@@ -37,8 +37,8 @@ pub struct CharacterBookEntry {
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default, PartialEq)]
 pub struct TavernCardV2 {
-    pub spec: String,
-    pub spec_version: String,
+    pub spec: Option<String>,
+    pub spec_version: Option<String>,
     pub data: CharacterData,
     #[serde(skip)]
     pub image_data: Option<Bytes>, // For keeping PNG image along
@@ -55,22 +55,19 @@ pub struct CharacterData {
     pub creator_notes: Option<String>,
     pub system_prompt: Option<String>,
     pub post_history_instructions: Option<String>,
-    pub alternate_greetings: Vec<String>,
+    pub alternate_greetings: Option<Vec<String>>,
     pub character_book: Option<CharacterBook>,
-    pub tags: Vec<String>,
+    pub tags: Option<Vec<String>>,
     pub creator: Option<String>,
     pub character_version: Option<String>,
-    pub extensions: std::collections::HashMap<String, serde_json::Value>,
+    pub extensions: Option<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 impl TavernCardV2 {
     pub fn new() -> Self {
-        Self {
-            spec: "chara_card_v2".to_string(),
-            spec_version: "2.0".to_string(),
-            data: CharacterData::default(),
-            image_data: None,
-        }
+        let mut s = TavernCardV2::default();
+        s.improve_card();
+        s
     }
 
     /// Writes card into image
@@ -98,9 +95,44 @@ impl TavernCardV2 {
             bail!("No {} entry in PNG tEXt chunks", TEXT_KEY_PNG);
         };
         let text = BASE64_STANDARD.decode(raw_text.unwrap())?;
-        let mut card: TavernCardV2 = serde_json::from_slice(&text)?;
+        if !text.starts_with(&[b'{']) {
+            bail! ("{} entry in PNG tEXt chunks does not start with '{{'", TEXT_KEY_PNG);
+        }
+        // Try to convert tag into tavern card data
+        let mut card = serde_json::from_slice::<TavernCardV2>(&text);
+        if card.is_err() {
+            // Sometimes the tag contains only the data portion
+            match serde_json::from_slice::<CharacterData>(&text) {
+                Ok(card_data) => {
+                    card = Ok(TavernCardV2 {
+                        data: card_data,
+                        ..Default::default()
+                    });
+                },
+                Err(e) => {
+                    bail!("Failed to parse {} entry in PNG tEXt chunks: {}", TEXT_KEY_PNG, e);
+                }
+            }
+        }
+        let mut card = card.unwrap();
         card.image_data = Some(image_data.clone());
         Ok(card)
+    }
+
+    /// Make changes to better conform the specification
+    fn improve_card(&mut self) {
+        if self.spec.is_none() {
+            self.spec = Some("chara_card_v2".to_string());
+        }
+        if self.spec_version.is_none() {
+            self.spec_version = Some("2.0".to_string());
+        }
+        if self.data.name.is_none() {
+            self.data.name = Some("".to_string());
+        }
+        if self.data.description.is_none() {
+            self.data.description = Some("NO NAME".to_string());
+        }
     }
 }
 

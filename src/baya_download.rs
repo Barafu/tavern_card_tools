@@ -253,7 +253,10 @@ impl From<&BayaCharacter> for TavernCardV2 {
         card_data.personality = transfer_string_and_conv(&character.description);
 
         for tag in &character.Tags {
-            card_data.tags.push(tag.name.clone());
+            if card_data.tags.is_none() {
+                card_data.tags = Some(vec![]);
+            }
+            card_data.tags.as_mut().unwrap().push(tag.name.clone());
         }
 
         let author_name = match &character.Author {
