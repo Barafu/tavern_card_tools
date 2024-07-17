@@ -40,6 +40,12 @@ pub fn write_image_to_file(image_data: &Bytes, image_path: &Path) -> Result<()> 
     Ok(())
 }
 
+pub fn read_image_from_file(image_path: &Path) -> Result<Bytes> {
+    let image_data = std::fs::read(image_path)?;
+    Ok(Bytes::from(image_data))
+}
+
+
 /// Convert an image to PNG format.
 ///
 /// Take an image in any supported format and convert it to PNG.

@@ -76,14 +76,23 @@ impl TavernCardV2 {
     /// Writes card into image
     ///
     /// Makes a copy of PNG image, with card tag added to it.
-    pub fn write_tavern_card(&self, image_data: &Bytes) -> Result<Bytes> {
+    pub fn into_png_image(&self) -> Result<Bytes> {
         let json_string = serde_json::to_string(self)?;
         let base64_json_string = BASE64_STANDARD.encode(json_string);
+        let temp_image_holder;
+        let image_data;
+        match &self.image_data {
+            Some(img) => image_data = img,
+            None => {
+                temp_image_holder = tools::get_default_image();
+                image_data = &temp_image_holder;
+            },
+        }
         let edited_card = tools::write_text_to_png(TEXT_KEY_PNG, &base64_json_string, image_data)?;
         Ok(edited_card)
     }
 
-    pub fn read_from_png(image_data: &Bytes) -> Result<Self> {
+    pub fn from_png_image(image_data: &Bytes) -> Result<Self> {
         let raw_text = tools::read_text_chunk(image_data, TEXT_KEY_PNG)?;
         if raw_text.is_none() {
             bail!("No {} entry in PNG tEXt chunks", TEXT_KEY_PNG);
@@ -99,8 +108,10 @@ impl TavernCardV2 {
 mod tests {    
 
     use super::*;
-    use tools;
     use anyhow::Result;
+    
+    #[allow(unused_imports)]
+    use tools;
 
     fn create_test_card() -> TavernCardV2 {
         let mut card = TavernCardV2::new();
@@ -119,6 +130,9 @@ mod tests {
 
         card.data.character_book.as_mut().unwrap().entries.push(entry1);
         card.data.character_book.as_mut().unwrap().entries.push(entry2);
+        card.image_data = Some(tools::get_default_image());
+        let image_with_tag = card.into_png_image().unwrap();
+        card.image_data = Some(image_with_tag);
         card
     }
 
@@ -131,12 +145,9 @@ mod tests {
 
     #[test]
     fn test_write_and_read() -> Result<()> {
-        let mut card = create_test_card();
-        let mut image = tools::get_default_image();
-        image = card.write_tavern_card(&image)?;
-        let mut card2 = TavernCardV2::read_from_png(&image)?;
-        card.image_data = None;
-        card2.image_data = None;
+        let card = create_test_card();
+        let image = card.into_png_image()?;
+        let card2 = TavernCardV2::from_png_image(&image)?;
         assert_eq!(card, card2);
         // tools::write_image_to_file(&image, &std::path::Path::new("testing/test_card.png"))?;
         Ok(())

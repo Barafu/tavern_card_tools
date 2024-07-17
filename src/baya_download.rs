@@ -110,30 +110,41 @@ pub fn download_card_from_baya_url(url: &str) -> Result<()> {
     info!("\nCHARACTER INFO:\n{:#?}", &baya_character);
 
     // Download the image, if it is linked on the page. Otherwise, use default image.
-    let card_name = PathBuf::from(format!("{}.png", display_char_name));
-    let mut card_image;
+    let mut card_image = None;
     if !baya_character.Images.is_empty() {
         // Download the first image linked on card.
         let url = &baya_character.Images[0].imageUrl;
         print!("Downloading image: ");
         flush();
-        card_image = tools::download_image(url)?;
-        card_image = tools::convert_to_png(&card_image)?;
+        // Try to download image and check result
+        let mut temp_img  = tools::download_image(url);
+        match temp_img {
+            Err(e) => eprintln! ("Could not download image because {}", e),
+            Ok(img) => {
+                // Try to convert img and check result
+                temp_img = tools::convert_to_png(&img);
+                match temp_img {
+                    Ok(img) => card_image = Some(img),
+                    Err(e) => eprintln!("Could not convert image to PNG because {}", e),
+                };
+            },
+        };        
     } else {
         print!("No image provided, using default image.");
-        card_image = tools::get_default_image();
     }
     println!("Done!");
-
+    
     print!("Writing tavern card: ");
     flush();
-    let tavern_card = TavernCardV2::from(&baya_character);
-
+    let mut tavern_card = TavernCardV2::from(&baya_character);
+    tavern_card.image_data = card_image;
+    
     info!("\nCONVERTED TAVERN CARD:\n{:#?}", &tavern_card);
-
+    
     let tavern_image = tavern_card
-        .write_tavern_card(&card_image)
-        .context("Could not write tavern card")?;
+    .into_png_image()
+    .context("Could not write tavern card")?;
+    let card_name = PathBuf::from(format!("{}.png", display_char_name));
     write_image_to_file(&tavern_image, &card_name)?;
     println!("Done!");
     print!("Fap away!");

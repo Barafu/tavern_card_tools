@@ -1,6 +1,10 @@
 //! Functions to remove asterisks.
 
-use crate::tavern_card_v2::TavernCardV2;
+use std::path::Path;
+
+use anyhow::{bail, Result};
+
+use crate::{tavern_card_v2::TavernCardV2, tools::{self, read_image_from_file}};
 
 /// Remove asterisks from text
 ///
@@ -56,7 +60,7 @@ fn remove_paired_asterisks(input_str: &str) -> String {
 }
 
 /// Removes asterisks from relevant fields of tavern card
-pub fn deastersisk_tavern_card(tavern_card: &mut TavernCardV2) {
+pub fn deasterisk_tavern_card(tavern_card: &mut TavernCardV2) {
     let d = &mut tavern_card.data;
     let de8 = |x: &mut Option<String>| {
         let t = x.as_ref().map(|y| remove_paired_asterisks(&y));
@@ -72,6 +76,30 @@ pub fn deastersisk_tavern_card(tavern_card: &mut TavernCardV2) {
             e.content = remove_paired_asterisks(&e.content);
         }
     }
+}
+
+// Opens file, applies deasterisk to it, saves in new location.
+pub fn deasterisk_tavern_file(png_path: &Path) -> Result<()> {
+    println!("Deasterisk file: {}", &png_path.display());
+    let image_data = read_image_from_file(png_path)?;
+    let mut card = TavernCardV2::from_png_image(&image_data)?;
+    println!("Character name is {}", card.data.name.to_owned().unwrap_or_else(||"".to_string()));
+    deasterisk_tavern_card(&mut card);
+    // Build new file name. 
+    let file_name = png_path
+    .file_name()
+    .map_or("image.png".to_string(), |x| x.to_string_lossy().to_string()); 
+    let new_file_name = format!("de8.{}", file_name);
+    let new_path = png_path.with_file_name(new_file_name);
+    if let Ok(t) = new_path.try_exists() {
+        if t {
+            bail!("Path {} already exists or is not available", new_path.display());
+        }
+    };
+    // Save image to new name
+    let new_image = card.into_png_image()?;
+    tools::write_image_to_file(&new_image, &new_path)?;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -122,7 +150,7 @@ mod tests {
     use crate::tavern_card_v2::*;
 
     #[test]
-    fn test_deastersisk_tavern_card() {
+    fn test_deasterisk_tavern_card() {
         let mut card = TavernCardV2::new();
         card.data.description = Some(String::from("Hello *world*, this is a **test** of *asterisks*."));
         card.data.personality = Some(String::from("*This* is **bold** and *this* is *italic*."));
@@ -140,7 +168,7 @@ mod tests {
         card.data.character_book.as_mut().unwrap().entries.push(entry1);
         card.data.character_book.as_mut().unwrap().entries.push(entry2);
         
-        deastersisk_tavern_card(&mut card);
+        deasterisk_tavern_card(&mut card);
 
         assert_eq!(
             card.data.description,
