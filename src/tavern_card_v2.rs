@@ -1,6 +1,9 @@
+use std::fmt::Display;
+
 use anyhow::{bail, Result};
 use base64::prelude::*;
 use bytes::Bytes;
+use textwrap::{fill, Options};
 
 use crate::tools;
 
@@ -83,7 +86,7 @@ impl TavernCardV2 {
             None => {
                 temp_image_holder = tools::get_default_image();
                 image_data = &temp_image_holder;
-            },
+            }
         }
         let edited_card = tools::write_text_to_png(TEXT_KEY_PNG, &base64_json_string, image_data)?;
         Ok(edited_card)
@@ -96,7 +99,10 @@ impl TavernCardV2 {
         };
         let text = BASE64_STANDARD.decode(raw_text.unwrap())?;
         if !text.starts_with(&[b'{']) {
-            bail! ("{} entry in PNG tEXt chunks does not start with '{{'", TEXT_KEY_PNG);
+            bail!(
+                "{} entry in PNG tEXt chunks does not start with '{{'",
+                TEXT_KEY_PNG
+            );
         }
         // Try to convert tag into tavern card data
         let mut card = serde_json::from_slice::<TavernCardV2>(&text);
@@ -108,9 +114,13 @@ impl TavernCardV2 {
                         data: card_data,
                         ..Default::default()
                     });
-                },
+                }
                 Err(e) => {
-                    bail!("Failed to parse {} entry in PNG tEXt chunks: {}", TEXT_KEY_PNG, e);
+                    bail!(
+                        "Failed to parse {} entry in PNG tEXt chunks: {}",
+                        TEXT_KEY_PNG,
+                        e
+                    );
                 }
             }
         }
@@ -136,12 +146,80 @@ impl TavernCardV2 {
     }
 }
 
+impl Display for TavernCardV2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Turns &Option<String> into &str
+        fn no_opt(o: &Option<String>) -> &str {
+            const NONE_STR: &str = "NONE";
+            o.as_ref().map(|x| x.as_str()).unwrap_or(NONE_STR)
+        }
+
+        let mut lines = vec![
+            ("Character name:", no_opt(&self.data.name)),
+            ("Description:", no_opt(&self.data.description)),
+            ("Personality:", no_opt(&self.data.personality)),
+            ("Scenario:", no_opt(&self.data.scenario)),
+            ("First message:", no_opt(&self.data.first_mes)),
+            ("Dialog example:", no_opt(&self.data.mes_example)),
+            ("Creator notes:", no_opt(&self.data.creator_notes)),
+            ("System prompt:", no_opt(&self.data.system_prompt)),
+            (
+                "Post history instructions:",
+                no_opt(&self.data.post_history_instructions),
+            ),
+            ("Creator:", no_opt(&self.data.creator)),
+        ];
+
+        // Print alternative greetings, if present
+        let ag_store;
+        if let Some(alternative_greetings) = &self.data.alternate_greetings {
+            ag_store = alternative_greetings.join("\n\n====\n\n");
+            lines.push(("Alternative greetings:", &ag_store));
+        }
+
+        // Print lorebook
+        let lb_store;
+        if let Some(character_book) = &self.data.character_book {
+            lb_store = character_book
+                .entries
+                .iter()
+                .map(|x| (x.keys.join(","), &x.content))
+                .map(|x| {
+                    if x.0.is_empty() {
+                        ("NO KEYS".to_string(), x.1)
+                    } else {
+                        x
+                    }
+                })
+                .map(|x| format!("{} : {}", x.0, x.1))
+                .collect::<Vec<String>>()
+                .join("\n");
+            lines.push(("Lorebook:", &lb_store));
+        }
+
+        // Now to convert the lines vector into a pretty string
+        let mut output = String::new();
+        let tw = *[textwrap::termwidth(), 80usize].iter().min().unwrap();
+        let options = Options::new(tw)
+            .initial_indent("")
+            .subsequent_indent("    ");
+        for (key, value) in lines {
+            let mut line = format!("{}: {}\n", key, value);
+            line = fill(&line, &options);
+            output += &line;
+        }
+        write!(f, "{}", output)?;
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
-mod tests {    
+mod tests {
 
     use super::*;
     use anyhow::Result;
-    
+
     #[allow(unused_imports)]
     use tools;
 
@@ -160,8 +238,18 @@ mod tests {
         let mut entry2 = CharacterBookEntry::default();
         entry2.content = String::from("Test book entry 2");
 
-        card.data.character_book.as_mut().unwrap().entries.push(entry1);
-        card.data.character_book.as_mut().unwrap().entries.push(entry2);
+        card.data
+            .character_book
+            .as_mut()
+            .unwrap()
+            .entries
+            .push(entry1);
+        card.data
+            .character_book
+            .as_mut()
+            .unwrap()
+            .entries
+            .push(entry2);
         card.image_data = Some(tools::get_default_image());
         let image_with_tag = card.into_png_image().unwrap();
         card.image_data = Some(image_with_tag);
@@ -183,5 +271,5 @@ mod tests {
         assert_eq!(card, card2);
         // tools::write_image_to_file(&image, &std::path::Path::new("testing/test_card.png"))?;
         Ok(())
-    } 
+    }
 }

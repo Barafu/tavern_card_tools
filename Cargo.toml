@@ -26,3 +26,4 @@ serde_json = "1.0.120"
 serde_path_to_error = "0.1.16"
 soup = "0.5.1"
 test-context = "0.3.0"
+textwrap = { version = "0.16.1", features = ["hyphenation", "terminal_size"] }

@@ -8,6 +8,7 @@ mod baya_download;
 mod deasterisk;
 mod tavern_card_v2;
 mod tools;
+mod actions;
 //mod example;
 
 #[derive(Parser, Debug)]
@@ -36,6 +37,14 @@ enum Commands {
         path: String,
         #[arg(short, long)]
         force: bool,
+    },
+    /// Print the content of the card
+    #[command(author, version, about, long_about = None)]
+    #[command(arg_required_else_help = true)]
+    Print {
+        /// Path to image.png
+        #[arg(short, long)]
+        path: String,
     },
 }
 
@@ -70,7 +79,8 @@ fn parse_args() -> Result<()> {
         Commands::BayaGet { url } => baya_download::download_card_from_baya_url(&url)?,
         Commands::De8 { path, force } => {
             deasterisk::deasterisk_tavern_file(Path::new(&path), force)?
-        }
+        },
+        Commands::Print { path } => actions::print_tavern_card_from_path(Path::new(&path))?,
     };
     Ok(())
 }
