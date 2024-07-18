@@ -6,6 +6,9 @@
 into `{{user}}`
 * `tavern_card_tools.exe de8 --path <filename.png>` - remove paired asterisks from all primary text fields of the card. Creates a new file for the output, named de8.filename.png, and leaves original as it is. 
 Add `--force` flag to overwrite output file even if it already exists. 
+* `tavern_card_tools.exe print --path <filename.png>` - print the meaningfull content of the character data to the terminal.
+* `tavern_card_tools.exe print_all --path <filename.png>` - print all character data as JSON to the terminal.
+
 
 Obviously, more functions planned in the future. 
 

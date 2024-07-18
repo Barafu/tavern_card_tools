@@ -46,6 +46,14 @@ enum Commands {
         #[arg(short, long)]
         path: String,
     },
+    /// Print the JSON of the card
+    #[command(name = "print_all", author, version, about, long_about = None)]
+    #[command(arg_required_else_help = true)]
+    PrintJson {
+        /// Path to image.png
+        #[arg(short, long)]
+        path: String,
+    },
 }
 
 fn main() {
@@ -81,6 +89,7 @@ fn parse_args() -> Result<()> {
             deasterisk::deasterisk_tavern_file(Path::new(&path), force)?
         },
         Commands::Print { path } => actions::print_tavern_card_from_path(Path::new(&path))?,
+        Commands::PrintJson { path } => actions::print_json_from_path(Path::new(&path))?,
     };
     Ok(())
 }

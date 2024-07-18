@@ -7,7 +7,7 @@ use textwrap::{fill, Options};
 
 use crate::tools;
 
-const TEXT_KEY_PNG: &str = "Chara";
+pub const TEXT_KEY_PNG: &str = "Chara";
 
 #[derive(serde::Serialize, serde::Deserialize, Debug, Default, PartialEq)]
 pub struct CharacterBook {
