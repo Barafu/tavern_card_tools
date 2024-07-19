@@ -2,12 +2,12 @@
 
 ## Currently supported functions:
 
-* `tavern_card_tools.exe baya_get --url <URL>` - extract a character card from "Backyard AI" URL. Supports URLs that require registration. Will automatically convert all instances of word `User`
-into `{{user}}`
-* `tavern_card_tools.exe de8 --path <filename.png>` - remove paired asterisks from all primary text fields of the card. Creates a new file for the output, named de8.filename.png, and leaves original as it is. 
+* `tavern_card_tools.exe print <filename.png>` - print the meaningfull content of the character data to the terminal.
+* `tavern_card_tools.exe <filename.png>` - same as above, print the character data.
+* `tavern_card_tools.exe print_all <filename.png>` - print all character data as JSON to the terminal.
+* `tavern_card_tools.exe baya_get <URL>` - extract a character card from "Backyard AI" URL. Supports URLs that require registration. Will automatically convert all instances of word `User` into `{{user}}`
+* `tavern_card_tools.exe de8 <filename.png>` - remove paired asterisks from all primary text fields of the card. Creates a new file for the output, named de8.filename.png, and leaves original as it is. 
 Add `--force` flag to overwrite output file even if it already exists. 
-* `tavern_card_tools.exe print --path <filename.png>` - print the meaningfull content of the character data to the terminal.
-* `tavern_card_tools.exe print_all --path <filename.png>` - print all character data as JSON to the terminal.
 
 
 Obviously, more functions planned in the future. 

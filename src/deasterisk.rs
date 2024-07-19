@@ -88,7 +88,7 @@ pub fn deasterisk_tavern_card(tavern_card: &mut TavernCardV2) {
 }
 
 // Opens file, applies deasterisk to it, saves in new location.
-pub fn deasterisk_tavern_file(png_path: &Path, overwrite: bool) -> Result<()> {
+pub fn deasterisk_tavern_file(png_path: &Path, auto_overwrite: bool) -> Result<()> {
     println!("Deasterisk file: {}", &png_path.display());
     let image_data = read_image_from_file(png_path)?;
     let mut card = TavernCardV2::from_png_image(&image_data)?;
@@ -107,13 +107,27 @@ pub fn deasterisk_tavern_file(png_path: &Path, overwrite: bool) -> Result<()> {
     let new_file_name = format!("de8.{}", file_name);
     println!("Output file name: {}", new_file_name);
     let new_path = png_path.with_file_name(new_file_name);
-    if new_path.try_exists().unwrap_or(true) {
+
+    // Check if output file already exists
+    let path_exists = new_path.try_exists();
+    if let Err(e) = path_exists {
+        bail!("Output path is not available: {}", e);
+    }
+    // If it exists - ask if it should be overwritten, unless `auto_overwrite`
+    // is set to true (then always overwrite).
+    if path_exists.unwrap() {
+        let mut overwrite = auto_overwrite;
+        if !auto_overwrite {
+            println!("File {} already exists. Overwrite?", new_path.display());
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            overwrite = input.trim().to_lowercase() == "y";
+        }
         if overwrite {
             std::fs::remove_file(&new_path)?;
         } else {
             bail!(
-                "File {} already exists or is not available",
-                new_path.display()
+                "File {} already exists ",    new_path.display()
             );
         }
     };
