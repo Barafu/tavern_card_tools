@@ -63,7 +63,8 @@ pub struct CharacterData {
     pub tags: Option<Vec<String>>,
     pub creator: Option<String>,
     pub character_version: Option<String>,
-    pub extensions: Option<std::collections::HashMap<String, serde_json::Value>>,
+    pub extensions:
+        Option<std::collections::HashMap<String, serde_json::Value>>,
 }
 
 impl TavernCardV2 {
@@ -88,7 +89,11 @@ impl TavernCardV2 {
                 image_data = &temp_image_holder;
             }
         }
-        let edited_card = tools::write_text_to_png(TEXT_KEY_PNG, &base64_json_string, image_data)?;
+        let edited_card = tools::write_text_to_png(
+            TEXT_KEY_PNG,
+            &base64_json_string,
+            image_data,
+        )?;
         Ok(edited_card)
     }
 
@@ -200,9 +205,8 @@ impl Display for TavernCardV2 {
         // Now to convert the lines vector into a pretty string
         let mut output = String::new();
         let tw = *[textwrap::termwidth(), 80usize].iter().min().unwrap();
-        let options = Options::new(tw)
-            .initial_indent("")
-            .subsequent_indent("    ");
+        let options =
+            Options::new(tw).initial_indent("").subsequent_indent("    ");
         for (key, value) in lines {
             let mut line = format!("{}: {}\n", key, value);
             line = fill(&line, &options);
@@ -238,18 +242,8 @@ mod tests {
         let mut entry2 = CharacterBookEntry::default();
         entry2.content = String::from("Test book entry 2");
 
-        card.data
-            .character_book
-            .as_mut()
-            .unwrap()
-            .entries
-            .push(entry1);
-        card.data
-            .character_book
-            .as_mut()
-            .unwrap()
-            .entries
-            .push(entry2);
+        card.data.character_book.as_mut().unwrap().entries.push(entry1);
+        card.data.character_book.as_mut().unwrap().entries.push(entry2);
         card.image_data = Some(tools::get_default_image());
         let image_with_tag = card.into_png_image().unwrap();
         card.image_data = Some(image_with_tag);

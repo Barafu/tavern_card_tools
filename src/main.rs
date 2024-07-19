@@ -71,7 +71,9 @@ fn main() {
     {
         use env_logger::Builder;
         use std::fs::File;
-        let target = Box::new(File::create("testing/last_run.log").expect("Can't create file"));
+        let target = Box::new(
+            File::create("testing/last_run.log").expect("Can't create file"),
+        );
 
         Builder::new()
             .target(env_logger::Target::Pipe(target))
@@ -103,9 +105,15 @@ fn parse_args() -> Result<()> {
     }
 
     match args.command.unwrap() {
-        Commands::BayaGet { url } => baya_download::download_card_from_baya_url(&url)?,
-        Commands::De8 { path, force } => deasterisk::deasterisk_tavern_file(&path, force)?,
-        Commands::Print { path } => actions::print_tavern_card_from_path(&path)?,
+        Commands::BayaGet { url } => {
+            baya_download::download_card_from_baya_url(&url)?
+        }
+        Commands::De8 { path, force } => {
+            deasterisk::deasterisk_tavern_file(&path, force)?
+        }
+        Commands::Print { path } => {
+            actions::print_tavern_card_from_path(&path)?
+        }
         Commands::PrintJson { path } => actions::print_json_from_path(&path)?,
     };
     Ok(())

@@ -19,22 +19,25 @@ pub fn download_page(url: &str) -> Result<String> {
 pub fn download_image(url: &str) -> Result<Bytes> {
     let downloaded_data;
     // Try to download the image.
-    let response = reqwest::blocking::get(url).context("No response when downloading image!")?;
+    let response = reqwest::blocking::get(url)
+        .context("No response when downloading image!")?;
     if response.status().is_success() {
-        downloaded_data = response
-            .bytes()
-            .context("Could not read the downloaded data.")?;
+        downloaded_data =
+            response.bytes().context("Could not read the downloaded data.")?;
     } else {
         bail!("Could not download image: status {:?}", response.status());
     };
 
     // Convert to PNG if it's not already.
-    let downloaded_image =
-        convert_to_png(&downloaded_data).context("Could not convert image to PNG")?;
+    let downloaded_image = convert_to_png(&downloaded_data)
+        .context("Could not convert image to PNG")?;
     Ok(downloaded_image)
 }
 
-pub fn write_image_to_file(image_data: &Bytes, image_path: &Path) -> Result<()> {
+pub fn write_image_to_file(
+    image_data: &Bytes,
+    image_path: &Path,
+) -> Result<()> {
     let mut file = std::fs::File::create(image_path)?;
     std::io::Write::write_all(&mut file, &image_data)?;
     Ok(())
@@ -78,7 +81,11 @@ pub fn get_default_image() -> Bytes {
 ///
 /// Returns error if the data is not a proper PNG. Makes sure not to duplicate
 /// the text chunk with the same key.
-pub fn write_text_to_png(key: &str, value: &str, image_data: &Bytes) -> Result<Bytes> {
+pub fn write_text_to_png(
+    key: &str,
+    value: &str,
+    image_data: &Bytes,
+) -> Result<Bytes> {
     // # Decode
     // The decoder is a build for reader and can be used to set various decoding options
     // via `Transformations`. The default output transformation is `Transformations::IDENTITY`.
@@ -99,7 +106,8 @@ pub fn write_text_to_png(key: &str, value: &str, image_data: &Bytes) -> Result<B
     info_out
         .uncompressed_latin1_text
         .retain(|x| x.keyword.to_lowercase() != key.to_lowercase());
-    let new_text_entry = TEXtChunk { keyword: key.to_string(), text: value.to_string() };
+    let new_text_entry =
+        TEXtChunk { keyword: key.to_string(), text: value.to_string() };
     info_out.uncompressed_latin1_text.push(new_text_entry);
 
     let mut encoder = png::Encoder::with_info(&mut output_vec, info_out)?;
@@ -118,7 +126,10 @@ pub fn write_text_to_png(key: &str, value: &str, image_data: &Bytes) -> Result<B
 }
 
 /// Searches PNG image for a tEXt chunk with a given key
-pub fn read_text_chunk(image_data: &Bytes, chunk_key: &str) -> Result<Option<String>> {
+pub fn read_text_chunk(
+    image_data: &Bytes,
+    chunk_key: &str,
+) -> Result<Option<String>> {
     // Create a decoder
     let decoder = png::Decoder::new(image_data.as_ref());
     let mut reader = decoder.read_info()?;

@@ -98,7 +98,8 @@ pub fn download_card_from_baya_url(url: &str) -> Result<()> {
     println!("Done!");
 
     print!("Parsing downloaded page: ");
-    let baya_character = parse_page(&body).context("Could not parse character JSON")?;
+    let baya_character =
+        parse_page(&body).context("Could not parse character JSON")?;
     println!("Done!");
 
     let display_char_name: String = baya_character
@@ -117,33 +118,35 @@ pub fn download_card_from_baya_url(url: &str) -> Result<()> {
         print!("Downloading image: ");
         flush();
         // Try to download image and check result
-        let mut temp_img  = tools::download_image(url);
+        let mut temp_img = tools::download_image(url);
         match temp_img {
-            Err(e) => eprintln! ("Could not download image because {}", e),
+            Err(e) => eprintln!("Could not download image because {}", e),
             Ok(img) => {
                 // Try to convert img and check result
                 temp_img = tools::convert_to_png(&img);
                 match temp_img {
                     Ok(img) => card_image = Some(img),
-                    Err(e) => eprintln!("Could not convert image to PNG because {}", e),
+                    Err(e) => eprintln!(
+                        "Could not convert image to PNG because {}",
+                        e
+                    ),
                 };
-            },
-        };        
+            }
+        };
     } else {
         print!("No image provided, using default image.");
     }
     println!("Done!");
-    
+
     print!("Writing tavern card: ");
     flush();
     let mut tavern_card = TavernCardV2::from(&baya_character);
     tavern_card.image_data = card_image;
-    
+
     info!("\nCONVERTED TAVERN CARD:\n{:#?}", &tavern_card);
-    
-    let tavern_image = tavern_card
-    .into_png_image()
-    .context("Could not write tavern card")?;
+
+    let tavern_image =
+        tavern_card.into_png_image().context("Could not write tavern card")?;
     let card_name = PathBuf::from(format!("{}.png", display_char_name));
     write_image_to_file(&tavern_image, &card_name)?;
     println!("Done!");
@@ -168,13 +171,13 @@ fn parse_page(body: &str) -> Result<BayaCharacter> {
 
     info!("\nSCRIPT DATA:\n{:#?}", &scr_text);
 
-    let mut json: serde_json::Value =
-        serde_json::from_str(&scr.text()).context("JSON was not well-formatted")?;
+    let mut json: serde_json::Value = serde_json::from_str(&scr.text())
+        .context("JSON was not well-formatted")?;
 
-    let pointer = "/props/pageProps/trpcState/json/queries/0/state/data/character";
-    let char_json = json
-        .pointer_mut(pointer)
-        .context("Could not find character block")?;
+    let pointer =
+        "/props/pageProps/trpcState/json/queries/0/state/data/character";
+    let char_json =
+        json.pointer_mut(pointer).context("Could not find character block")?;
 
     let json_string = serde_json::to_string_pretty(&char_json)?;
     info!("\nCHAR JSON:\n{:#?}", &json_string);
@@ -205,7 +208,8 @@ fn convert_user_tag(text: &str) -> String {
     let mut result = String::new();
     let mut last_match_end = 0;
 
-    for (start, part) in text.match_indices(|c: char| c.is_whitespace() || c.is_ascii_punctuation())
+    for (start, part) in text
+        .match_indices(|c: char| c.is_whitespace() || c.is_ascii_punctuation())
     {
         if start > last_match_end {
             let word = &text[last_match_end..start];
@@ -235,22 +239,23 @@ impl From<&BayaCharacter> for TavernCardV2 {
         let mut new_character = TavernCardV2::new();
         let card_data = &mut new_character.data;
 
-        let transfer_string = |s: &Option<String>| {
-            s.clone().filter(|x| !x.is_empty())
-        };
+        let transfer_string =
+            |s: &Option<String>| s.clone().filter(|x| !x.is_empty());
 
-        let transfer_string_and_conv = |s| {
-            transfer_string(s).map(|x| convert_user_tag(&x))
-        };
+        let transfer_string_and_conv =
+            |s| transfer_string(s).map(|x| convert_user_tag(&x));
 
         card_data.name = transfer_string(&character.aiDisplayName);
         card_data.description = transfer_string_and_conv(&character.aiPersona);
         card_data.scenario = transfer_string_and_conv(&character.scenario);
         card_data.first_mes = transfer_string_and_conv(&character.firstMessage);
-        card_data.mes_example = transfer_string_and_conv(&character.customDialogue);
+        card_data.mes_example =
+            transfer_string_and_conv(&character.customDialogue);
         card_data.creator_notes = transfer_string(&character.authorNotes);
-        card_data.system_prompt = transfer_string_and_conv(&character.basePrompt);
-        card_data.personality = transfer_string_and_conv(&character.description);
+        card_data.system_prompt =
+            transfer_string_and_conv(&character.basePrompt);
+        card_data.personality =
+            transfer_string_and_conv(&character.description);
 
         for tag in &character.Tags {
             if card_data.tags.is_none() {
@@ -314,20 +319,24 @@ mod tests {
 
     impl TestContext for TestCache {
         fn setup() -> Self {
-            let file_content =
-                std::fs::read_to_string(CACHE_PATH).unwrap_or_else(|_| String::new());
-            serde_json::from_str(&file_content).unwrap_or_else(|_| TestCache {
-                page_cache: HashMap::new(),
-            })
+            let file_content = std::fs::read_to_string(CACHE_PATH)
+                .unwrap_or_else(|_| String::new());
+            serde_json::from_str(&file_content)
+                .unwrap_or_else(|_| TestCache { page_cache: HashMap::new() })
         }
 
         fn teardown(self) {
-            let serialized = serde_json::to_string(&self).expect("Failed to serialize cache");
-            std::fs::write(CACHE_PATH, serialized).expect("Failed to write cache to file");
+            let serialized = serde_json::to_string(&self)
+                .expect("Failed to serialize cache");
+            std::fs::write(CACHE_PATH, serialized)
+                .expect("Failed to write cache to file");
         }
     }
 
-    fn download_testing_webpage<'a>(url: &str, cache: &'a mut TestCache) -> Result<&'a str> {
+    fn download_testing_webpage<'a>(
+        url: &str,
+        cache: &'a mut TestCache,
+    ) -> Result<&'a str> {
         if cache.page_cache.contains_key(url) {
             return Ok(cache.page_cache.get(url).unwrap());
         }
@@ -339,7 +348,8 @@ mod tests {
     #[test_context(TestCache)]
     #[test]
     fn test_downloading_page(cache: &mut TestCache) -> Result<()> {
-        const TEST_URL: &str = "https://backyard.ai/hub/character/clmg7rj2e03j0mc0v69b1tai1";
+        const TEST_URL: &str =
+            "https://backyard.ai/hub/character/clmg7rj2e03j0mc0v69b1tai1";
         let page = download_testing_webpage(TEST_URL, cache)?;
         let baya_char = parse_page(page)?;
         let baya_char_name = baya_char.aiDisplayName.unwrap();

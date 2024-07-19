@@ -88,7 +88,10 @@ pub fn deasterisk_tavern_card(tavern_card: &mut TavernCardV2) {
 }
 
 // Opens file, applies deasterisk to it, saves in new location.
-pub fn deasterisk_tavern_file(png_path: &Path, auto_overwrite: bool) -> Result<()> {
+pub fn deasterisk_tavern_file(
+    png_path: &Path,
+    auto_overwrite: bool,
+) -> Result<()> {
     println!("Deasterisk file: {}", &png_path.display());
     let image_data = read_image_from_file(png_path)?;
     let mut card = TavernCardV2::from_png_image(&image_data)?;
@@ -126,9 +129,7 @@ pub fn deasterisk_tavern_file(png_path: &Path, auto_overwrite: bool) -> Result<(
         if overwrite {
             std::fs::remove_file(&new_path)?;
         } else {
-            bail!(
-                "File {} already exists ",    new_path.display()
-            );
+            bail!("File {} already exists ", new_path.display());
         }
     };
 
@@ -146,11 +147,15 @@ mod tests {
     #[test]
     fn test_remove_paired_asterisks() {
         assert_eq!(
-            remove_paired_asterisks("Hello *world*, this is a **test** of *asterisks*."),
+            remove_paired_asterisks(
+                "Hello *world*, this is a **test** of *asterisks*."
+            ),
             "Hello world, this is a **test** of asterisks."
         );
         assert_eq!(
-            remove_paired_asterisks("*This* is **bold** and *this* is *italic*."),
+            remove_paired_asterisks(
+                "*This* is **bold** and *this* is *italic*."
+            ),
             "This is **bold** and this is italic."
         );
         assert_eq!(
@@ -191,10 +196,12 @@ mod tests {
         card.data.description = Some(String::from(
             "Hello *world*, this is a **test** of *asterisks*.",
         ));
-        card.data.personality = Some(String::from("*This* is **bold** and *this* is *italic*."));
+        card.data.personality =
+            Some(String::from("*This* is **bold** and *this* is *italic*."));
         card.data.scenario = Some(String::from("No asterisks here."));
         card.data.first_mes = Some(String::from("Only *paired* asterisks."));
-        card.data.mes_example = Some(String::from("Only **unpaired** asterisks."));
+        card.data.mes_example =
+            Some(String::from("Only **unpaired** asterisks."));
         card.data.character_book = Some(CharacterBook::default());
         //card.data.character_book.unwrap().entries
         let mut entry1 = CharacterBookEntry::default();
@@ -203,32 +210,23 @@ mod tests {
         let mut entry2 = CharacterBookEntry::default();
         entry2.content = String::from("**Example text of no importance**");
 
-        card.data
-            .character_book
-            .as_mut()
-            .unwrap()
-            .entries
-            .push(entry1);
-        card.data
-            .character_book
-            .as_mut()
-            .unwrap()
-            .entries
-            .push(entry2);
+        card.data.character_book.as_mut().unwrap().entries.push(entry1);
+        card.data.character_book.as_mut().unwrap().entries.push(entry2);
 
         deasterisk_tavern_card(&mut card);
 
         assert_eq!(
             card.data.description,
-            Some(String::from(
-                "Hello world, this is a **test** of asterisks."
-            ))
+            Some(String::from("Hello world, this is a **test** of asterisks."))
         );
         assert_eq!(
             card.data.personality,
             Some(String::from("This is **bold** and this is italic."))
         );
-        assert_eq!(card.data.scenario, Some(String::from("No asterisks here.")));
+        assert_eq!(
+            card.data.scenario,
+            Some(String::from("No asterisks here."))
+        );
         assert_eq!(
             card.data.first_mes,
             Some(String::from("Only paired asterisks."))
