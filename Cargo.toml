@@ -1,6 +1,6 @@
 [package]
 name = "tavern_card_tools"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Barafu Albino <barafu_devel@albino.email>"]
 
