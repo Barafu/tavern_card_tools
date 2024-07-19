@@ -2,7 +2,7 @@
 name = "tavern_card_tools"
 version = "0.1.4"
 edition = "2021"
-authors = ["Barafu Albino <barafu_devel@albino.email>"]
+authors = ["Barafu Albino <barafu_develops@albino.email>"]
 
 [profile.release]
 strip = true #Remove extra symbols
@@ -17,7 +17,7 @@ bytes = { version = "1.6.0", features = ["serde"] }
 chrono = { version = "0.4.38", features = ["serde"] }
 clap = { version = "4.5.9", features = ["derive", "unicode"] }
 env_logger = "0.11.3"
-image = "0.25.1"
+image = {version = "0.25.1", features = ["png", "bmp", "gif", "hdr", "ico", "jpeg", "webp"], default-features = false}
 log = { version = "0.4.22", features = ["serde"] }
 png = "0.17.13"
 reqwest = { version = "0.12.5", features = ["blocking"] }
@@ -27,4 +27,4 @@ serde_json = "1.0.120"
 serde_path_to_error = "0.1.16"
 soup = "0.5.1"
 test-context = "0.3.0"
-textwrap = { version = "0.16.1", features = ["hyphenation", "terminal_size"] }
+textwrap = { version = "0.16.1", features = ["terminal_size"] }
